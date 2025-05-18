@@ -97,4 +97,27 @@ fun CameraPreviewContent(
             modifier = modifier
         )
     }
+
+    /*
+    Box(
+        modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
+        contentAlignment = Alignment.Center
+    ){
+        //Kamera Icon-Button
+        IconButton(
+            onClick = {
+                takePhoto()
+            },
+            modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 50.dp),
+            enabled = true,
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    painter = painterResource(id = R.drawable.fotoicon), contentDescription = null,
+                    modifier = Modifier.size(100.dp)
+                )
+                Spacer(modifier = Modifier.width(7.dp))
+            }
+        }
+    } */
 }
