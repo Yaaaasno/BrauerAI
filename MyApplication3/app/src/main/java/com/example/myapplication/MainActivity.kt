@@ -64,6 +64,7 @@ fun MainMenuScreen(
     onSettingsClick: () -> Unit,
     onCameraClick: () -> Unit
 ) {
+    //Die Box, die alle anderen Dinge fässt
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -89,18 +90,6 @@ fun MainMenuScreen(
                     contentDescription = null
                 )
             }
-
-            /* Schnitzeljagd-Button Bild outlines (links oben)
-            Button(
-                onClick = schnitzelJagd,
-                modifier = Modifier.padding(5.dp).width(130.dp).height(60.dp),
-                shape = RoundedCornerShape(10.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Green
-                )
-            ) {
-                Text(text = "Schnitzeljagd")
-            } */
 
             //Einstellungen Button
             IconButton(
@@ -132,7 +121,7 @@ fun MainMenuScreen(
 
                 Text(
                     text = "Willkommen in der BRAUERAI-App\n\n" +
-                            infotextRandom(),
+                            infotextRandom(),       //Die Funktion, die bei App-Start immer neue Infos angibt
                     style = MaterialTheme.typography.bodyLarge,
                     color = Color(0xFF2E7D32),
                     textAlign = TextAlign.Center,
@@ -150,7 +139,7 @@ fun MainMenuScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     painter = painterResource(id = R.drawable.fotoicon), contentDescription = null,
-                    modifier = Modifier.size(100.dp)
+                    modifier = Modifier.size(180.dp)
                 )
                 Spacer(modifier = Modifier.width(7.dp))
             }
@@ -158,6 +147,7 @@ fun MainMenuScreen(
     }
 }
 
+//Funktion für die Infoanzeige, die jedes Mal neu sein soll
 fun infotextRandom(): String {
     val infos = arrayOf(
         "Was ist dein Lieblingsbier?",
@@ -167,4 +157,3 @@ fun infotextRandom(): String {
     val rndnmb = Random.nextInt(4)
     return infos[rndnmb]
 }
-
