@@ -5,6 +5,7 @@
 package com.example.myapplication
 
 import android.Manifest
+import android.R.attr.contentDescription
 import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -16,10 +17,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
@@ -50,16 +53,21 @@ import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
 import com.example.myapplication.ui.theme.ApiService
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.RequestBody.Companion.asRequestBody
-
-import org.chromium.base.Callback
-import org.chromium.base.ThreadUtils.runOnUiThread
 import retrofit2.*
 import retrofit2.converter.gson.GsonConverterFactory
 import java.io.File
 import kotlin.random.Random
+import retrofit2.Callback
+import retrofit2.Call
+import retrofit2.Response
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.asRequestBody
+import okhttp3.ResponseBody
+import okhttp3.MediaType.Companion.toMediaTypeOrNull as toMediaTypeOrNull1
+import okhttp3.RequestBody.Companion.asRequestBody as asRequestBody1
+import androidx.compose.ui.layout.ContentScale
+
 
 class CameraX : ComponentActivity() {
     companion object {  //Server URL
@@ -80,6 +88,56 @@ class CameraX : ComponentActivity() {
     }
 }
 
+/**
+ *
+ *
+ *
+ */
+fun uploadImageFromFile(file: File, updateMessage: (String) -> Unit) {
+    val retrofit = Retrofit.Builder()
+        .baseUrl(CameraX.BASE_URL)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
+    val apiService = retrofit.create(ApiService::class.java)
+
+    val mediaType = "image/jpeg".toMediaTypeOrNull1()
+    val requestBody = file.asRequestBody1(mediaType)
+    val imagePart = MultipartBody.Part.createFormData("upload_file", file.name, requestBody)
+
+    apiService.uploadImage(imagePart).enqueue(object : Callback<ResponseBody> {
+        override fun onResponse(call: Call<ResponseBody>, response: Response<ResponseBody>) {
+            val message = if (response.isSuccessful) {
+                val responseBody = response.body()?.string() ?: "No response body"
+                "Upload successful: $responseBody"
+            } else {
+                "Upload failed: ${response.code()}"
+            }
+            updateMessage(message)
+        }
+
+        override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+            updateMessage("Upload error: ${t.message}")
+        }
+    })
+}
+
+/**
+ *
+ *
+ *
+ */
+fun findLatestCapturedPhoto(cacheDir: File): File? {
+    return cacheDir.listFiles { file ->
+        file.name.startsWith("photo_") && file.name.endsWith(".jpg")
+    }?.maxByOrNull { it.lastModified() }
+}
+
+/**
+ *
+ *
+ *
+ */
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun CameraPreviewScreen(
@@ -118,6 +176,11 @@ fun CameraPreviewScreen(
     }
 }
 
+/**
+ *
+ *
+ *
+ */
 @Composable
 fun CameraPreviewContent(
     viewModel: CameraPreviewViewModel,
@@ -129,6 +192,7 @@ fun CameraPreviewContent(
     val context = LocalContext.current
     var photoUri by remember { mutableStateOf<android.net.Uri?>(null) }
     var message by remember { mutableStateOf("Press the button to upload the image.") }
+    var showTable by remember { mutableStateOf(false) }
     LaunchedEffect(lifecycleOwner) {
         viewModel.bindToCamera(context.applicationContext, lifecycleOwner)
     }
@@ -139,62 +203,99 @@ fun CameraPreviewContent(
             modifier = modifier
         )
     }
-
-    Box(modifier = Modifier.fillMaxSize()){
-            surfaceRequest?.let { request ->
-                CameraXViewfinder(
-                    surfaceRequest = request,
-                    modifier = Modifier.fillMaxSize()
-                )
-            }
+    Box(modifier = Modifier.fillMaxSize()) {
+        surfaceRequest?.let { request ->
+            CameraXViewfinder(
+                surfaceRequest = request,
+                modifier = Modifier.fillMaxSize()
+            )
+        }
         // Kamera Icon
         IconButton(
-            onClick = {
-                viewModel.takePhoto(context = context,
-                    onImageSaved = {file -> photoUri = file.toUri() },
-                onError = {error -> error.printStackTrace() })
-                },
-            modifier = Modifier.align(Alignment.BottomCenter).padding(32.dp)
+            onClick = { //Kamera Button Funktion
+                showTable = false   //sagt an, dass
+                viewModel.takePhoto(    //Kamera Funktion. takePhoto ist eine in CameraPreviewModel definierte Funktion
+                    context = context,  //Context wird übergeben
+                    onImageSaved = { file ->
+                        photoUri = file.toUri()     //Speichert die URI des aufgenommenen Bildes
+                    },
+                    onError = { error ->            //Fehlerabdeckung
+                        error.printStackTrace()     //Zeigt den Fehler in der Konsole an
+                    }
+                )
+            },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(32.dp)
         ) {
             Icon(
                 painter = painterResource(R.drawable.fotoicon),
                 tint = Color.White,
-                contentDescription = null,
+                contentDescription = "Kamera Button",
                 modifier = Modifier.size(64.dp)
             )
         }
         // Home Icon
         IconButton(
-            onClick = onBackToMenuClicked,
+            onClick = onBackToMenuClicked,  //Öffnet die Funktion im oberen Teil des Codes
             modifier = Modifier.align(Alignment.TopStart).padding(32.dp)
         ) {
             Icon(
                 painter = painterResource(R.drawable.homeicon),
                 tint = Color.White,
-                contentDescription = null,
-            )
-        }
-        // Foto senden Icon
-        IconButton(
-            onClick = {
-
-            },
-            modifier = Modifier.align(Alignment.BottomEnd).padding(32.dp)
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.fotosendenicon),
-                tint = Color.White,
-                contentDescription = null,
+                contentDescription = "Home Button",
                 modifier = Modifier.size(64.dp)
             )
         }
 
-        photoUri?.let {
-            Image(
-                painter = rememberAsyncImagePainter(it),
-                contentDescription = null,
-                modifier = Modifier.align(Alignment.Center)
-            )
+        //Provisorischer Hardcode: Mittelbereich, der entweder aufgenommenes Foto oder eine Tabelle zeigt
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxSize()
+        ) {
+            if (showTable) {
+                Image(
+                    painter = painterResource(R.drawable.ergebnis),
+                    contentDescription = "Ergebnis",
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    contentScale = ContentScale.FillBounds
+                )
+            } else {
+                photoUri?.let { uri -> // "Uniform Resource Identifier" Ist der Pfad zu einem Bild
+                    Image(
+                        painter = rememberAsyncImagePainter(uri),   //Zeigt das Bild an, indem er Uri aufruft
+                        contentDescription = "Aufgenommenes Foto",
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        contentScale = ContentScale.Crop    //Größe des Bildes anpassen, da es sonst nicht über den Bildschirm gestreckt wäre
+                    )
+                }
+            }
+        }
+
+        // Foto senden Icon
+        if (photoUri != null && !showTable) { //Ist er aktiv, wenn ein foto aufgenommen wurde
+            IconButton(
+                onClick = {
+//                  val latestPhoto = findLatestCapturedPhoto(context.cacheDir)
+//                  if (latestPhoto != null && latestPhoto.exists()) {
+//                  uploadImageFromFile(latestPhoto) { newMessage ->
+//                  message = newMessage
+                    showTable = true    //Hardcode für Präsentation
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(32.dp)
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.fotosendenicon),
+                    tint = Color.White,
+                    contentDescription = null,
+                    modifier = Modifier.size(64.dp)
+                )
+            }
         }
     }
 }
